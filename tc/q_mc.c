@@ -51,16 +51,9 @@
 static void explain(void)
 {
 	fprintf(stderr,
-		"Usage: ... fq	[ limit PACKETS ] [ flow_limit PACKETS ]\n"
-		"		[ quantum BYTES ] [ initial_quantum BYTES ]\n"
+		"Usage: ... mc"
 		"		[ maxrate RATE  ] [ buckets NUMBER ]\n"
-		"		[ [no]pacing ] [ refill_delay TIME ]\n"
-		"		[ low_rate_threshold RATE ]\n"
-		"		[ orphan_mask MASK]\n"
-		"		[ timer_slack TIME]\n"
-		"		[ ce_threshold TIME ]\n"
-		"		[ horizon TIME ]\n"
-		"		[ horizon_{cap|drop} ]\n");
+		);
 }
 
 static unsigned int ilog2(unsigned int val)
@@ -79,12 +72,12 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 			struct nlmsghdr *n, const char *dev)
 {
 	unsigned int maxrate;
-	__u8 horizon_drop = 255;
 	bool set_maxrate = false;
 	struct rtattr *tail;
 
 	while (argc > 0) {
 		if (strcmp(*argv, "maxrate") == 0) {
+			fprintf(stderr, "Reading maxrate\n");
 			NEXT_ARG();
 			if (strchr(*argv, '%')) {
 				if (get_percent_rate(&maxrate, *argv, dev)) {
@@ -100,9 +93,11 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 		argc--; argv++;
 	}
 
+	fprintf(stderr, "maxrate = %u\n", maxrate);
+	fprintf(stderr, "TCA_MC_MAX_RATE = %u\n", TCA_MC_MAX_RATE);
 	tail = addattr_nest(n, 1024, TCA_OPTIONS);
 	if (set_maxrate)
-		addattr_l(n, 1024, TCA_FQ_FLOW_MAX_RATE,
+		addattr_l(n, 1024, TCA_MC_MAX_RATE,
 			  &maxrate, sizeof(maxrate));
 	addattr_nest_end(n, tail);
 	return 0;
@@ -110,28 +105,19 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 
 static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 {
-	struct rtattr *tb[TCA_FQ_MAX + 1];
-	unsigned int plimit, flow_plimit;
-	unsigned int buckets_log;
-	int pacing;
-	unsigned int rate, quantum;
-	unsigned int refill_delay;
-	unsigned int orphan_mask;
-	unsigned int ce_threshold;
-	unsigned int timer_slack;
-	unsigned int horizon;
-	__u8 horizon_drop;
+	struct rtattr *tb[TCA_MC_MAX + 1];
+	unsigned int rate;
 
 	SPRINT_BUF(b1);
 
 	if (opt == NULL)
 		return 0;
 
-	parse_rtattr_nested(tb, TCA_FQ_MAX, opt);
+	parse_rtattr_nested(tb, TCA_MC_MAX, opt);
 
-	if (tb[TCA_FQ_FLOW_MAX_RATE] &&
-	    RTA_PAYLOAD(tb[TCA_FQ_FLOW_MAX_RATE]) >= sizeof(__u32)) {
-		rate = rta_getattr_u32(tb[TCA_FQ_FLOW_MAX_RATE]);
+	if (tb[TCA_MC_MAX_RATE] &&
+	    RTA_PAYLOAD(tb[TCA_MC_MAX_RATE]) >= sizeof(__u32)) {
+		rate = rta_getattr_u32(tb[TCA_MC_MAX_RATE]);
 
 		if (rate != ~0U)
 			tc_print_rate(PRINT_ANY,
