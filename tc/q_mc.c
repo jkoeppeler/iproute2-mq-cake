@@ -71,7 +71,7 @@ static unsigned int ilog2(unsigned int val)
 static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 			struct nlmsghdr *n, const char *dev)
 {
-	unsigned int maxrate;
+	__u64 maxrate = 0;
 	bool set_maxrate = false;
 	struct rtattr *tail;
 
@@ -94,7 +94,6 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 	}
 
 	fprintf(stderr, "maxrate = %u\n", maxrate);
-	fprintf(stderr, "TCA_MC_MAX_RATE = %u\n", TCA_MC_MAX_RATE);
 	tail = addattr_nest(n, 1024, TCA_OPTIONS);
 	if (set_maxrate)
 		addattr_l(n, 1024, TCA_MC_MAX_RATE,
@@ -107,6 +106,7 @@ static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 {
 	struct rtattr *tb[TCA_MC_MAX + 1];
 	unsigned int rate;
+	__u64 packets_sent;
 
 	SPRINT_BUF(b1);
 
@@ -116,12 +116,19 @@ static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 	parse_rtattr_nested(tb, TCA_MC_MAX, opt);
 
 	if (tb[TCA_MC_MAX_RATE] &&
-	    RTA_PAYLOAD(tb[TCA_MC_MAX_RATE]) >= sizeof(__u32)) {
-		rate = rta_getattr_u32(tb[TCA_MC_MAX_RATE]);
+	    RTA_PAYLOAD(tb[TCA_MC_MAX_RATE]) >= sizeof(__u64)) {
+		rate = rta_getattr_u64(tb[TCA_MC_MAX_RATE]);
 
 		if (rate != ~0U)
 			tc_print_rate(PRINT_ANY,
 				      "maxrate", "maxrate %s ", rate);
+	}
+	if (tb[TCA_MC_PACKETS_SENT] &&
+	    RTA_PAYLOAD(tb[TCA_MC_PACKETS_SENT]) >= sizeof(__u64)) {
+		packets_sent = rta_getattr_u64(tb[TCA_MC_PACKETS_SENT]);
+
+		print_u64(PRINT_ANY,
+				  "packets sent", "packets sent: %llu ", packets_sent);
 	}
 	return 0;
 }
