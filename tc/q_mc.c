@@ -1,7 +1,5 @@
 /*
- * Fair Queue
- *
- *  Copyright (C) 2013-2015 Eric Dumazet <edumazet@google.com>
+ * Multi Queue Scheduler
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,22 +54,10 @@ static void explain(void)
 		);
 }
 
-static unsigned int ilog2(unsigned int val)
-{
-	unsigned int res = 0;
-
-	val--;
-	while (val) {
-		res++;
-		val >>= 1;
-	}
-	return res;
-}
-
 static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 			struct nlmsghdr *n, const char *dev)
 {
-	__u64 maxrate = 0;
+	unsigned int maxrate = 0;
 	bool set_maxrate = false;
 	struct rtattr *tail;
 
@@ -108,8 +94,6 @@ static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 	unsigned int rate;
 	__u64 packets_sent;
 
-	SPRINT_BUF(b1);
-
 	if (opt == NULL)
 		return 0;
 
@@ -117,7 +101,7 @@ static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 
 	if (tb[TCA_MC_MAX_RATE] &&
 	    RTA_PAYLOAD(tb[TCA_MC_MAX_RATE]) >= sizeof(__u64)) {
-		rate = rta_getattr_u64(tb[TCA_MC_MAX_RATE]);
+		rate = rta_getattr_u32(tb[TCA_MC_MAX_RATE]);
 
 		if (rate != ~0U)
 			tc_print_rate(PRINT_ANY,
@@ -138,7 +122,6 @@ static int mc_print_xstats(struct qdisc_util *qu, FILE *f,
 {
 	struct tc_fq_qd_stats *st, _st;
 
-	SPRINT_BUF(b1);
 
 	if (xstats == NULL)
 		return 0;
