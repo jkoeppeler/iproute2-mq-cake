@@ -50,7 +50,7 @@ static void explain(void)
 {
 	fprintf(stderr,
 		"Usage: ... mc"
-		"		[ maxrate RATE  ] [ buckets NUMBER ]\n"
+		"		[ maxrate RATE  ] [ sync TIME ]\n"
 		);
 }
 
@@ -58,12 +58,13 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 			struct nlmsghdr *n, const char *dev)
 {
 	unsigned int maxrate = 0;
+	unsigned int sync_time = 0;
 	bool set_maxrate = false;
+	bool set_synctime = false;
 	struct rtattr *tail;
 
 	while (argc > 0) {
 		if (strcmp(*argv, "maxrate") == 0) {
-			fprintf(stderr, "Reading maxrate\n");
 			NEXT_ARG();
 			if (strchr(*argv, '%')) {
 				if (get_percent_rate(&maxrate, *argv, dev)) {
@@ -75,15 +76,24 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 				return -1;
 			}
 			set_maxrate = true;
+		} else if (strcmp(*argv, "sync") == 0) {
+			NEXT_ARG();
+			if (get_time(&sync_time, *argv)) {
+				fprintf(stderr, "Illegal sync time\n");
+				return -1;
+			}
+			set_synctime = true;
 		}
 		argc--; argv++;
 	}
 
 	fprintf(stderr, "maxrate = %u\n", maxrate);
+	fprintf(stderr, "sync time: %u\n", sync_time);
 	tail = addattr_nest(n, 1024, TCA_OPTIONS);
 	if (set_maxrate)
-		addattr_l(n, 1024, TCA_MC_MAX_RATE,
-			  &maxrate, sizeof(maxrate));
+		addattr_l(n, 1024, TCA_MC_MAX_RATE,&maxrate, sizeof(maxrate));
+	if (set_synctime)
+		addattr_l(n, 1024, TCA_MC_SYNC_TIME, &sync_time, sizeof(sync_time));
 	addattr_nest_end(n, tail);
 	return 0;
 }
