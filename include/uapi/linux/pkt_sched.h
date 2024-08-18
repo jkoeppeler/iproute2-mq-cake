@@ -1311,6 +1311,9 @@ enum {
 	TCA_MC_UNSPEC,
 	TCA_MC_MAX_RATE,	/* per flow max rate */
 	TCA_MC_PACKETS_SENT,
+	TCA_MC_SYNC_TIME,
+	TCA_MC_QLEN_LIMIT,
+	TCA_MC_WD_SLACK,
 	__TCA_MC_MAX
 };
 
