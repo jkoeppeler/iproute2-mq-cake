@@ -59,8 +59,12 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 {
 	unsigned int maxrate = 0;
 	unsigned int sync_time = 0;
+	unsigned int limit = 0;
+	unsigned int slack = 0;
 	bool set_maxrate = false;
 	bool set_synctime = false;
+	bool set_limit = false;
+	bool set_slack = false;
 	struct rtattr *tail;
 
 	while (argc > 0) {
@@ -83,17 +87,38 @@ static int mc_parse_opt(struct qdisc_util *qu, int argc, char **argv,
 				return -1;
 			}
 			set_synctime = true;
+		} else if (strcmp(*argv, "limit") == 0) {
+			NEXT_ARG();
+			if (get_unsigned(&limit, *argv, 0)) {
+				fprintf(stderr, "Illegal \"limit\"\n");
+				return -1;
+			}
+			set_limit = true;
+
+		} else if (strcmp(*argv, "slack") == 0) {
+			NEXT_ARG();
+			if (get_unsigned(&slack, *argv, 0)) {
+				fprintf(stderr, "Illegal \"slack modifier\"\n");
+				return -1;
+			}
+			set_slack = true;
 		}
 		argc--; argv++;
 	}
 
 	fprintf(stderr, "maxrate = %u\n", maxrate);
 	fprintf(stderr, "sync time: %u\n", sync_time);
+	fprintf(stderr, "limit = %u\n", limit);
+	fprintf(stderr, "slack: %u\n", slack);
 	tail = addattr_nest(n, 1024, TCA_OPTIONS);
 	if (set_maxrate)
 		addattr_l(n, 1024, TCA_MC_MAX_RATE,&maxrate, sizeof(maxrate));
 	if (set_synctime)
 		addattr_l(n, 1024, TCA_MC_SYNC_TIME, &sync_time, sizeof(sync_time));
+	if (set_limit)
+		addattr_l(n, 1024, TCA_MC_QLEN_LIMIT, &limit, sizeof(limit));
+	if (set_slack)
+		addattr_l(n, 1024, TCA_MC_WD_SLACK, &slack, sizeof(slack));
 	addattr_nest_end(n, tail);
 	return 0;
 }
