@@ -143,6 +143,7 @@ static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 	struct rtattr *tb[TCA_MC_MAX + 1];
 	unsigned int rate;
 	__u64 packets_sent;
+	__u64 active_queues;
 
 	SPRINT_BUF(b1);
 
@@ -164,7 +165,14 @@ static int mc_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt)
 		packets_sent = rta_getattr_u64(tb[TCA_MC_PACKETS_SENT]);
 
 		print_u64(PRINT_ANY,
-				  "packets sent", "packets sent: %llu ", packets_sent);
+				  "packets_sent", "packets sent: %llu ", packets_sent);
+	}
+	if (tb[TCA_MC_ACTIVE_Q_AVG] &&
+	    RTA_PAYLOAD(tb[TCA_MC_ACTIVE_Q_AVG]) >= sizeof(__u64)) {
+		active_queues = rta_getattr_u64(tb[TCA_MC_ACTIVE_Q_AVG]);
+
+		print_u64(PRINT_ANY,
+				  "active_queues", "active queues: %llu ", active_queues);
 	}
 	return 0;
 }
